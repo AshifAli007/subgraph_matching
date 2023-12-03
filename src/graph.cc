@@ -1,27 +1,30 @@
 #include "include/graph.h"
+using namespace std;
 
 namespace daf {
 Graph::Graph(const std::string &filename)
     : filename_(filename), fin_(filename) {}
 
 Graph::~Graph() {
-  delete[] start_off_;
-  delete[] linear_adj_list_;
   delete[] label_;
-  delete[] label_frequency_;
+  delete[] linear_adj_list_;
+  delete[] start_off_;
   delete[] core_num_;
+  delete[] label_frequency_;
 }
 
 void Graph::LoadRoughGraph(std::vector<std::vector<Vertex>> *graph) {
+  // Load the graph from file
   if (!fin_.is_open()) {
-    std::cerr << "Graph file " << filename_ << " not found!\n";
+    cerr << "Required file for graph named " << filename_ << " does not found!\n";
     exit(EXIT_FAILURE);
   }
 
-  Size v, e;
-  char type;
+  char graph_type;
+  Size e, v;
 
-  fin_ >> type >> v >> e;
+  // Load the graph from file
+  fin_ >> graph_type >> v >> e;
 
   num_vertex_ = v;
   num_edge_ = e;
@@ -29,53 +32,61 @@ void Graph::LoadRoughGraph(std::vector<std::vector<Vertex>> *graph) {
 
   graph->resize(v);
 
-  // preprocessing
-  while (fin_ >> type) {
-    if (type == 'v') {
+  // preprocessing for core number
+  for(int i=1; fin_ >> graph_type;i++){
+    if (graph_type == 'v' && i) {
       Vertex id;
       Label l;
       fin_ >> id >> l;
 
       label_[id] = l;
-    } else if (type == 'e') {
-      Vertex v1, v2;
+    } else if (graph_type == 'e') {
+      Vertex v2, v1;
       fin_ >> v1 >> v2;
 
       (*graph)[v1].push_back(v2);
       (*graph)[v2].push_back(v1);
+      i--;
     }
   }
-
+  // compute the core number
   fin_.close();
 }
 
 void Graph::computeCoreNum() {
-  Size *bin = new Size[max_degree_ + 1];
   Size *pos = new Size[GetNumVertices()];
+  int extendable_vertex_count = 1;
+  // compute the degree of each vertex
   Vertex *vert = new Vertex[GetNumVertices()];
+  Size *bin = new Size[max_degree_ + extendable_vertex_count];
 
-  std::fill(bin, bin + (max_degree_ + 1), 0);
+  std::fill(bin, bin + (extendable_vertex_count + max_degree_), extendable_vertex_count - 1);
 
-  for (Vertex v = 0; v < GetNumVertices(); ++v) {
-    bin[core_num_[v]] += 1;
+  for (Vertex v = extendable_vertex_count - 1; v < GetNumVertices(); ++v) {
+    bin[core_num_[v]] +=  extendable_vertex_count;
   }
 
-  Size start = 0;
+  Size start = ++extendable_vertex_count - 2;
   Size num;
 
-  for (Size d = 0; d <= max_degree_; ++d) {
+  for (Size d = 0; d <= max_degree_;) {
     num = bin[d];
     bin[d] = start;
     start += num;
+    d = d + 1;
   }
 
-  for (Vertex v = 0; v < GetNumVertices(); ++v) {
+  for (Vertex v = 0; v < GetNumVertices(); ) {
     pos[v] = bin[core_num_[v]];
     vert[pos[v]] = v;
     bin[core_num_[v]] += 1;
+    ++v;
   }
 
-  for (Size d = max_degree_; d--;) bin[d + 1] = bin[d];
+  for (Size d = max_degree_; d--;) {
+    bin[d + 1] = bin[d];
+  }
+
   bin[0] = 0;
 
   for (Size i = 0; i < GetNumVertices(); ++i) {
@@ -103,9 +114,9 @@ void Graph::computeCoreNum() {
       }
     }
   }
-
+  // Remove the extendable vertex
   delete[] bin;
-  delete[] pos;
   delete[] vert;
+  delete[] pos;
 }
-}  // namespace daf
+} 
