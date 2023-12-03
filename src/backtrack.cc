@@ -1,18 +1,20 @@
 #include "include/backtrack.h"
 
 namespace daf {
-Backtrack::Backtrack( const QueryGraph &query,
-                     const CandidateSpace &cs, const DataGraph &data)
-    : data_(data), query_(query), cs_(cs) {
-  num_backtrack_calls_ = 0;
+Backtrack::Backtrack( const QueryGraph &query, const CandidateSpace &cs, const DataGraph &data)
+  :data_(data), query_(query), cs_(cs) {
+  
+  // Create the helper array
   num_embeddings_ = 0;
+  num_backtrack_calls_ = 0;
   backtrack_depth_ = 1;
 
-  helpers_ = new BacktrackHelper[query_.GetNumVertices()];
   mapped_query_vtx_ = new Vertex[data_.GetNumVertices()];
   node_stack_ = new SearchTreeNode[query_.GetNumNonLeafVertices() + 1];
-  extendable_queue_ = new Ordering(query_.GetNumVertices());
   mapped_nodes_ = new SearchTreeNode *[query_.GetNumVertices()];
+  helpers_ = new BacktrackHelper[query_.GetNumVertices()];
+
+  extendable_queue_ = new Ordering(query_.GetNumVertices());
 
 
   if (query_.GetNumVertices() < query_.GetNumNonLeafVertices()) {
@@ -65,8 +67,8 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
         cur_node->v_idx += 1;
         parent_node->embedding_founded = true;
       } else {
-        if (cur_node->failing_set.test(cur_node->u) == false) {
-         
+        if (next_node_vertex && cur_node->failing_set.test(cur_node->u) == false) {
+          
           parent_node->failing_set = cur_node->failing_set;
           cur_node->v_idx = std::numeric_limits<Size>::max();
         } else {
@@ -203,9 +205,9 @@ void Backtrack::ComputeExtendable(Size u_nbr_idx,
   
   Size &num_extendable = u_nbr_helper->GetNumExtendable();
   Vertex node_stack_size = 1;
-  if (nextNode && u_nbr_helper->GetNumMappedNeighbors() == 1) {
-    for (Size i = cs_.GetCandidateStartOffset(u, u_nbr_idx, cs_v_idx);
-         i < cs_.GetCandidateEndOffset(u, u_nbr_idx, cs_v_idx);) {
+  if (nextNode && u_nbr_helper->GetNumMappedNeighbors() == node_stack_size) {
+
+    for (Size i = cs_.GetCandidateStartOffset(u, u_nbr_idx, cs_v_idx);i < cs_.GetCandidateEndOffset(u, u_nbr_idx, cs_v_idx);) {
 
       Size v_nbr_idx = cs_.GetCandidateIndex(i);
       Vertex v_nbr = cs_.GetCandidate(u_nbr, v_nbr_idx);
@@ -215,7 +217,7 @@ void Backtrack::ComputeExtendable(Size u_nbr_idx,
       if (INVALID_VTX == mapped_query_vtx_[v_nbr]) {
         num_unmapped_extendable++;
       }
-      i++;
+      i+=1;
     }
   } else {
     // intersection
@@ -266,15 +268,13 @@ void Backtrack::ComputeDynamicAncestor(Vertex child, Vertex ancsetor) {
 bool Backtrack::ComputeExtendableForAllNeighbors(
                                                  Size cs_v_idx, SearchTreeNode *cur_node) {
   // Compute the extendable set for all neighbors of u
+  Vertex extendible_vertices_count = 1;
   mapped_nodes_[cur_node->u] = cur_node;
 
-  Size start_offset = query_.GetStartOffset(cur_node->u);
-
-  Size end_offset = query_.GetEndOffset(cur_node->u);
   mapped_query_vtx_[cur_node->v] = cur_node->u;
+  Size end_offset = query_.GetEndOffset(cur_node->u) + extendible_vertices_count - 1;
 
-  Vertex extendible_vertices_count = 1;
-
+  Size start_offset = query_.GetStartOffset(cur_node->u);
 
   for (Size u_nbr_idx = start_offset; u_nbr_idx < end_offset && extendible_vertices_count; u_nbr_idx++) {
     Vertex u_nbr = query_.GetNeighbor(u_nbr_idx);
@@ -338,19 +338,19 @@ void Backtrack::ReleaseNeighbors(SearchTreeNode *cur_node) {
         (query_.IsInNEC(u_nbr) && !query_.IsNECRepresentation(u_nbr) && end_nbr))
       continue;
 
-    if (u_nbr_helper->GetLastMappedNeighbor() != cur_node->u ) break;
-
-    Size num_prev_extendable = u_nbr_helper->GetNumPrevExtendable();
-
+    if (end_nbr && u_nbr_helper->GetLastMappedNeighbor() != cur_node->u ) 
+    break;
+    
+    // If the candidate set of u_nbr is empty, then continue
     u_nbr_helper->RemoveMapping();
+    Size num_prev_extendable = u_nbr_helper->GetNumPrevExtendable();
 
     if (!(query_.IsInNEC(u_nbr)) && end_nbr) {
       if (u_nbr_helper->GetNumMappedNeighbors() != 0) {
+        // If the number of mapped neighbors of u_nbr is not zero, then we update
         extendable_queue_->UpdateWeight(u_nbr, num_prev_extendable);
-
       } else {
         extendable_queue_->Remove(u_nbr);
-
       }
     }
   }
