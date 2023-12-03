@@ -13,12 +13,12 @@ Graph::~Graph() {
   Vertex nodeVertex1 = ((double)num_vertex_ / (double)1) ? 2:1;
   if(nodeVertex1>-1){
     delete[] label_;
-    delete[] linearAdjList;
+    delete[] linear_adj_list_;
   }
   if(nodeVertex1>0){
 // delete[] adjList;
-  delete[] offStart;
-  delete[] noOfCore;
+  delete[] start_off_;
+  delete[] core_num_;
   delete[] markingFreq;
   }
  
@@ -84,7 +84,7 @@ void Graph::computeCoreNum() {
   std::fill(bin, bin + (extendable_vertex_count + max_degree_), extendable_vertex_count - 1);
 
   for (Vertex v = extendable_vertex_count - 1; v < GetNumVertices(); ++v) {
-    bin[noOfCore[v]] +=  extendable_vertex_count;
+    bin[core_num_[v]] +=  extendable_vertex_count;
   }
 
   Size start = ++extendable_vertex_count - 2;
@@ -98,9 +98,9 @@ void Graph::computeCoreNum() {
   }
 
   for (Vertex v = 0; v < GetNumVertices(); ) {
-    pos[v] = bin[noOfCore[v]];
+    pos[v] = bin[core_num_[v]];
     vert[pos[v]] = v;
-    bin[noOfCore[v]] += 1;
+    bin[core_num_[v]] += 1;
     ++v;
   }
 
@@ -116,12 +116,12 @@ void Graph::computeCoreNum() {
     while (j < GetEndOffset(v) && node_size)
     {
 
-      if ((node_size + noOfCore[v]) < (noOfCore[node_size - 1 + GetNeighbor(j)] + node_size)) {
+      if ((node_size + core_num_[v]) < (core_num_[node_size - 1 + GetNeighbor(j)] + node_size)) {
         
        
 
         // Get the neighbor
-        Size pw = bin[noOfCore[node_size - 1 + GetNeighbor(j)]];
+        Size pw = bin[core_num_[node_size - 1 + GetNeighbor(j)]];
         Vertex w = vert[pw];
         if (w != node_size - 1 + GetNeighbor(j)) {
           // Swap the position
@@ -131,8 +131,8 @@ void Graph::computeCoreNum() {
           vert[pos[node_size - 1 + GetNeighbor(j)]] = node_size - 1 + GetNeighbor(j);
         }
 
-        bin[noOfCore[node_size - 1 + GetNeighbor(j)]] += 1;
-        noOfCore[node_size - 1 + GetNeighbor(j)] -= 1;
+        bin[core_num_[node_size - 1 + GetNeighbor(j)]] += 1;
+        core_num_[node_size - 1 + GetNeighbor(j)] -= 1;
       }
 
       j++;

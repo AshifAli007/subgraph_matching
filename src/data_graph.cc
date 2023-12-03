@@ -69,19 +69,19 @@ void DataGraph::LoadAndProcessGraph() {
   // compute offsets & construct adjacent list and label frequency
   Size cur_idx = 0;
   max_degree_ = 0;
-  linearAdjList = new Vertex[GetNumEdges() * 2];
-  offStart = new Size[GetNumVertices() + 1];
+  linear_adj_list_ = new Vertex[GetNumEdges() * 2];
+  start_off_ = new Size[GetNumVertices() + 1];
   offs_by_label_ = new Size[GetNumLabels() + 1];
   adj_offs_by_label_ =
       new std::pair<Size, Size>[GetNumVertices() * GetNumLabels()];
-  noOfCore = new Size[GetNumVertices()];
+  core_num_ = new Size[GetNumVertices()];
 
   Label cur_label = 0;  // min label of data graph is 0
   offs_by_label_[0] = 0;
   for (Vertex v = 0; v < GetNumVertices(); ++v) {
     Size start = v * GetNumLabels();
     markingFreq[GetLabel(v)] += 1;
-    offStart[v] = cur_idx;
+    start_off_[v] = cur_idx;
 
     if (markingFreq[GetLabel(v)] > max_label_frequency_) {
       max_label_frequency_ = markingFreq[GetLabel(v)];
@@ -94,7 +94,7 @@ void DataGraph::LoadAndProcessGraph() {
     }
 
     // initialize core number
-    noOfCore[v] = adj_list[v].size();
+    core_num_[v] = adj_list[v].size();
     if (adj_list[v].size() > max_degree_) max_degree_ = adj_list[v].size();
 
     if (adj_list[v].size() == 0) {
@@ -135,11 +135,11 @@ void DataGraph::LoadAndProcessGraph() {
 
     // copy adj_list to linear_adj_list
     std::copy(adj_list[v].begin(), adj_list[v].end(),
-              linearAdjList + cur_idx);
+              linear_adj_list_ + cur_idx);
 
     cur_idx += adj_list[v].size();
   }
-  offStart[GetNumVertices()] = num_edge_ * 2;
+  start_off_[GetNumVertices()] = num_edge_ * 2;
   offs_by_label_[GetNumLabels()] = GetNumVertices();
 
   // preprocess for data graph

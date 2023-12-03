@@ -45,11 +45,11 @@ class Graph {
   Size max_degree_;
 
   Label* label_;
-  Size* offStart;
-  Vertex* linearAdjList;
+  Size* start_off_;
+  Vertex* linear_adj_list_;
   Size* markingFreq;
 
-  Size* noOfCore;
+  Size* core_num_;
 
   const std::string& filename_;
   std::ifstream fin_;
@@ -65,21 +65,21 @@ inline Size Graph::GetMaxDegree() const { return max_degree_; }
 
 inline Label Graph::GetLabel(Vertex v) const { return label_[v]; }
 
-inline Size Graph::GetStartOffset(Vertex v) const { return offStart[v]; }
+inline Size Graph::GetStartOffset(Vertex v) const { return start_off_[v]; }
 
-inline Size Graph::GetEndOffset(Vertex v) const { return offStart[v + 1]; }
+inline Size Graph::GetEndOffset(Vertex v) const { return start_off_[v + 1]; }
 
 inline Size Graph::GetDegree(Vertex v) const {
-  return offStart[v + 1] - offStart[v];
+  return start_off_[v + 1] - start_off_[v];
 }
 
-inline Size Graph::GetCoreNum(Vertex v) const { return noOfCore[v]; }
+inline Size Graph::GetCoreNum(Vertex v) const { return core_num_[v]; }
 
 inline Label Graph::GetLabelFrequency(Label l) const {
   return markingFreq[l];
 }
 
-inline Vertex Graph::GetNeighbor(Size i) const { return linearAdjList[i]; }
+inline Vertex Graph::GetNeighbor(Size i) const { return linear_adj_list_[i]; }
 
 }  // namespace daf
 
