@@ -95,7 +95,7 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
       cur_node->v = cs_.GetCandidate(cur_node->u, cs_v_idx);
 
       if (mapped_query_vtx_[cur_node->v] == INVALID_VTX) {
-        bool success = ComputeExtendableForAllNeighbors(cur_node, cs_v_idx);
+        bool success = ComputeExtendableForAllNeighbors(cs_v_idx, cur_node);
 
         if (!success) {
           
@@ -255,15 +255,15 @@ void Backtrack::ComputeDynamicAncestor(Vertex child, Vertex ancsetor) {
   child_helper->GetAncestor() |= ancestor_helper->GetAncestor();
 }
 
-bool Backtrack::ComputeExtendableForAllNeighbors(SearchTreeNode *cur_node,
-                                                 Size cs_v_idx) {
-  Size start_offset = query_.GetStartOffset(cur_node->u);
+bool Backtrack::ComputeExtendableForAllNeighbors(
+                                                 Size cs_v_idx, SearchTreeNode *cur_node) {
   Size end_offset = query_.GetEndOffset(cur_node->u);
-
   mapped_query_vtx_[cur_node->v] = cur_node->u;
+  Size start_offset = query_.GetStartOffset(cur_node->u);
   mapped_nodes_[cur_node->u] = cur_node;
 
-  for (Size u_nbr_idx = start_offset; u_nbr_idx < end_offset; ++u_nbr_idx) {
+
+  for (Size u_nbr_idx = start_offset; u_nbr_idx < end_offset; u_nbr_idx++) {
     Vertex u_nbr = query_.GetNeighbor(u_nbr_idx);
 
     BacktrackHelper *u_nbr_helper = helpers_ + u_nbr;
