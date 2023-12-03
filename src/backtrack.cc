@@ -1,49 +1,41 @@
 #include "include/backtrack.h"
 
 namespace daf {
-Backtrack::Backtrack(const DataGraph &data, const QueryGraph &query,
-                     const CandidateSpace &cs)
+Backtrack::Backtrack( const QueryGraph &query,
+                     const CandidateSpace &cs, const DataGraph &data)
     : data_(data), query_(query), cs_(cs) {
-  num_embeddings_ = 0;
   num_backtrack_calls_ = 0;
+  num_embeddings_ = 0;
   backtrack_depth_ = 1;
 
+  helpers_ = new BacktrackHelper[query_.GetNumVertices()];
   mapped_query_vtx_ = new Vertex[data_.GetNumVertices()];
   node_stack_ = new SearchTreeNode[query_.GetNumNonLeafVertices() + 1];
-  mapped_nodes_ = new SearchTreeNode *[query_.GetNumVertices()];
-  helpers_ = new BacktrackHelper[query_.GetNumVertices()];
-
   extendable_queue_ = new Ordering(query_.GetNumVertices());
+  mapped_nodes_ = new SearchTreeNode *[query_.GetNumVertices()];
 
-  if (query_.GetNumNonLeafVertices() < query_.GetNumVertices()) {
+
+  if (query_.GetNumVertices() < query_.GetNumNonLeafVertices()) {
+    match_leaves_ = nullptr;
+    
+  } else {
     match_leaves_ = new MatchLeaves(data_, query_, cs_, mapped_query_vtx_,
                                     helpers_, mapped_nodes_);
-  } else {
-    match_leaves_ = nullptr;
   }
-
-  std::fill(mapped_query_vtx_, mapped_query_vtx_ + data_.GetNumVertices(),
-            INVALID_VTX);
-
-  for (Vertex u = 0; u < query_.GetNumVertices(); ++u) {
+for (Vertex u = 0; u < query_.GetNumVertices(); ++u) {
     helpers_[u].Initialize(query_.GetNumVertices(), query_.GetDegree(u),
                            cs_.GetCandidateSetSize(u), u);
   }
+  std::fill(mapped_query_vtx_, mapped_query_vtx_ + data_.GetNumVertices(),
+            INVALID_VTX);
+
+  
 }
 
-Backtrack::~Backtrack() {
-  delete[] mapped_query_vtx_;
-  delete[] node_stack_;
-  delete[] mapped_nodes_;
-  delete[] helpers_;
 
-  delete extendable_queue_;
-  if (match_leaves_ != nullptr) {
-    delete match_leaves_;
-  }
-}
 
 uint64_t Backtrack::FindMatches(uint64_t limit) {
+
   Vertex root_vertex = GetRootVertex();
   Size root_cs_size = cs_.GetCandidateSetSize(root_vertex);
 
@@ -52,16 +44,37 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
   InitializeNodeStack();
 
   while (backtrack_depth_ > 0) {
-    if (num_embeddings_ >= limit) {
+    if (limit <= num_embeddings_) {
       return num_embeddings_;
     }
 
-    SearchTreeNode *parent_node = node_stack_ + (backtrack_depth_ - 1);
     SearchTreeNode *cur_node = node_stack_ + backtrack_depth_;
+    SearchTreeNode *parent_node = node_stack_ + (backtrack_depth_ - 1);
 
     BacktrackHelper *u_helper;
 
-    if (cur_node->initialized == false) {
+    if (cur_node->initialized == true) {
+      // backtrack from child node
+      ReleaseNeighbors(cur_node);
+
+      u_helper = helpers_ + cur_node->u;
+
+      if (cur_node->embedding_founded) {
+
+        parent_node->embedding_founded = true;
+        cur_node->v_idx += 1;
+      } else {
+        if (cur_node->failing_set.test(cur_node->u) == false) {
+         
+          parent_node->failing_set = cur_node->failing_set;
+          cur_node->v_idx = std::numeric_limits<Size>::max();
+        } else {
+          
+          parent_node->failing_set |= cur_node->failing_set;
+          cur_node->v_idx += 1;
+        }
+      }
+    } else {
       // newly expanded search tree node
       num_backtrack_calls_ += 1;
 
@@ -73,28 +86,6 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
 
       u_helper = helpers_ + cur_node->u;
       u_helper->GetMappingState() = MAPPED;
-    } else {
-      // backtrack from child node
-      ReleaseNeighbors(cur_node);
-
-      u_helper = helpers_ + cur_node->u;
-
-      // compute failing set of parent node (non-leaf node)
-      if (cur_node->embedding_founded) {
-        // case 1
-        parent_node->embedding_founded = true;
-        cur_node->v_idx += 1;
-      } else {
-        if (cur_node->failing_set.test(cur_node->u) == false) {
-          // case 2.1
-          parent_node->failing_set = cur_node->failing_set;
-          cur_node->v_idx = std::numeric_limits<Size>::max();
-        } else {
-          // case 2.2
-          parent_node->failing_set |= cur_node->failing_set;
-          cur_node->v_idx += 1;
-        }
-      }
     }
 
     Size num_extendable = u_helper->GetNumExtendable();
@@ -107,10 +98,10 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
         bool success = ComputeExtendableForAllNeighbors(cur_node, cs_v_idx);
 
         if (!success) {
-          // go to sibling node (need to compute failing set of parent node)
+          
           break;
         } else if (backtrack_depth_ == query_.GetNumNonLeafVertices()) {
-          // embedding class
+          
           uint64_t num_cur_embeddings;
 
           if (query_.GetNumNonLeafVertices() == query_.GetNumVertices()) {
@@ -119,16 +110,16 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
             num_cur_embeddings = match_leaves_->Match(limit - num_embeddings_);
           }
 
-          cur_node->embedding_founded = true;
           num_embeddings_ += num_cur_embeddings;
+          cur_node->embedding_founded = true;
           break;
         } else {
-          // expand to child node
+          
           backtrack_depth_ += 1;
           break;
         }
       } else {
-        // conflict class
+        
         if (parent_node->embedding_founded == false) {
           Vertex u_conflict = mapped_query_vtx_[cur_node->v];
           BacktrackHelper *u_conflict_helper = helpers_ + u_conflict;
@@ -140,8 +131,8 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
         cur_node->v_idx += 1;
       }
     }
-    if (cur_node->v_idx >= num_extendable) {
-      // go to parent node
+    if (num_extendable <= cur_node->v_idx ) {
+     
       extendable_queue_->Insert(cur_node->u, num_extendable);
       u_helper->GetMappingState() = UNMAPPED;
       cur_node->initialized = false;
@@ -153,6 +144,17 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
   return num_embeddings_;
 }
 
+Backtrack::~Backtrack() {
+  delete[] node_stack_;
+  delete[] helpers_;
+  delete[] mapped_query_vtx_;
+  delete extendable_queue_;
+  delete[] mapped_nodes_;
+
+  if (match_leaves_ != nullptr) {
+    delete match_leaves_;
+  }
+}
 Vertex Backtrack::GetRootVertex() {
   Vertex root_vertex = 0;
   Size root_cs_size = std::numeric_limits<Size>::max();

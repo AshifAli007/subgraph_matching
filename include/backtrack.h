@@ -16,8 +16,8 @@ struct SearchTreeNode;
 
 class Backtrack {
  public:
-  Backtrack(const DataGraph &data, const QueryGraph &query,
-            const CandidateSpace &cs);
+  Backtrack( const QueryGraph &query,
+            const CandidateSpace &cs, const DataGraph &data);
   ~Backtrack();
 
   Backtrack &operator=(const Backtrack &) = delete;

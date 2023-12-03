@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
   uint64_t num_backtrack_calls = 0;
   if (cs_constructed) {
     std::cout << "Enumerating...\n";
-    daf::Backtrack backtrack(data, query, cs);
+    daf::Backtrack backtrack(query, cs, data);
 
     backtrack_timer.Start();
     num_embeddings = backtrack.FindMatches(limit);
