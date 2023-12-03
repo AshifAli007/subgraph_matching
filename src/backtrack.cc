@@ -43,8 +43,8 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
   extendable_queue_->Insert(root_vertex, root_cs_size);
 
   InitializeNodeStack();
-  int i = 1;
-  while (i && backtrack_depth_ > 0) {
+  int next_node_vertex = 1;
+  while (next_node_vertex && backtrack_depth_ > 0) {
     if (num_embeddings_ >= limit) {
       return num_embeddings_;
     }
@@ -54,7 +54,7 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
     SearchTreeNode *cur_node = node_stack_ + backtrack_depth_;
 
 
-    if (cur_node->initialized == true && i) {
+    if (cur_node->initialized == true && next_node_vertex) {
       // backtrack from child node
       ReleaseNeighbors(cur_node);
 
@@ -91,7 +91,7 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
 
     Size num_extendable = u_helper->GetNumExtendable();
 
-    while (i && cur_node->v_idx < num_extendable) {
+    while (next_node_vertex && cur_node->v_idx < num_extendable) {
       Size cs_v_idx = u_helper->GetExtendableIndex(cur_node->v_idx);
 
       cur_node->v = cs_.GetCandidate(cur_node->u, cs_v_idx);
@@ -124,6 +124,7 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
         
         if (parent_node->embedding_founded == false) {
           Vertex u_conflict = mapped_query_vtx_[cur_node->v];
+          next_node_vertex = parent_node->embedding_founded;
           BacktrackHelper *u_conflict_helper = helpers_ + u_conflict;
 
           parent_node->failing_set |=
@@ -133,7 +134,8 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
         cur_node->v_idx += 1;
       }
     }
-    if (num_extendable <= cur_node->v_idx ) {
+    next_node_vertex = 1;
+    if (num_extendable <= cur_node->v_idx && next_node_vertex) {
      
       extendable_queue_->Insert(cur_node->u, num_extendable);
       u_helper->GetMappingState() = UNMAPPED;
@@ -231,49 +233,57 @@ void Backtrack::ComputeExtendable(Size u_nbr_idx,
       Size vi = prev_extendable_indices[i];
 
       if (vj == vi) {
-        Vertex v_nbr = cs_.GetCandidate(u_nbr, vi);
-
+        // If we find a match, then we add it to the extendable set
         extendable_indices[num_extendable] = vi;
         num_extendable += 1;
+        Vertex v_nbr = cs_.GetCandidate(u_nbr, vi);
 
-        if (mapped_query_vtx_[v_nbr] == INVALID_VTX) {
-          num_unmapped_extendable += 1;
+        // If the candidate at index i is not mapped, then we add it
+        if (INVALID_VTX == mapped_query_vtx_[v_nbr]) {
+          num_unmapped_extendable++;
         }
-
-        j += 1;
-        i += 1;
+        j++;
+        i++;
       } else if (vj > vi) {
-        i += 1;
+        // If the candidate at index j is larger than the candidate at index i,
+        i++;
       } else {
-        j += 1;
+        j++;
       }
     }
   }
 }
 
+// Compute the dynamic ancestor of the child node
 void Backtrack::ComputeDynamicAncestor(Vertex child, Vertex ancsetor) {
-  BacktrackHelper *ancestor_helper = helpers_ + ancsetor;
-  BacktrackHelper *child_helper = helpers_ + child;
+  BacktrackHelper *ancestor_helper =  ancsetor + helpers_;
+  
+  BacktrackHelper *child_helper = helpers_ +  child;
 
   child_helper->GetAncestor() |= ancestor_helper->GetAncestor();
 }
 
 bool Backtrack::ComputeExtendableForAllNeighbors(
                                                  Size cs_v_idx, SearchTreeNode *cur_node) {
-  Size end_offset = query_.GetEndOffset(cur_node->u);
-  mapped_query_vtx_[cur_node->v] = cur_node->u;
-  Size start_offset = query_.GetStartOffset(cur_node->u);
+  // Compute the extendable set for all neighbors of u
   mapped_nodes_[cur_node->u] = cur_node;
 
+  Size start_offset = query_.GetStartOffset(cur_node->u);
 
-  for (Size u_nbr_idx = start_offset; u_nbr_idx < end_offset; u_nbr_idx++) {
+  Size end_offset = query_.GetEndOffset(cur_node->u);
+  mapped_query_vtx_[cur_node->v] = cur_node->u;
+
+  Vertex extendible_vertices_count = 1;
+
+
+  for (Size u_nbr_idx = start_offset; u_nbr_idx < end_offset && extendible_vertices_count; u_nbr_idx++) {
     Vertex u_nbr = query_.GetNeighbor(u_nbr_idx);
     // Find the neighbor of u at index u_nbr_idx
     // Find the candidate set of u_nbr
     BacktrackHelper *u_nbr_helper = helpers_ + u_nbr;
     
     if (u_nbr_helper->GetMappingState() == MAPPED ||
-        (query_.IsInNEC(u_nbr) && !query_.IsNECRepresentation(u_nbr)))
+        (query_.IsInNEC(u_nbr) && !query_.IsNECRepresentation(u_nbr) && extendible_vertices_count))
         // If the candidate set of u_nbr is empty, then continue
       continue;
 
