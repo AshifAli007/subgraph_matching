@@ -359,3 +359,4 @@ void Backtrack::ReleaseNeighbors(SearchTreeNode *cur_node) {
   mapped_query_vtx_[cur_node->v] = INVALID_VTX;
 }
 }
+

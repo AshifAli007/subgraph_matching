@@ -19,11 +19,11 @@ bool QueryGraph::LoadAndProcessGraph(const DataGraph &data) {
   num_label_ = 0;
   max_label_ = 0;
 
-  markingFreq = new Size[data.GetNumLabels()];
+  label_frequency_ = new Size[data.GetNumLabels()];
   start_off_ = new Size[GetNumVertices() + 1];
   linear_adj_list_ = new Vertex[GetNumEdges() * 2];
   core_num_ = new Size[GetNumVertices()];
-  std::fill(markingFreq, markingFreq + data.GetNumLabels(), 0);
+  std::fill(label_frequency_, label_frequency_ + data.GetNumLabels(), 0);
 
   Size cur_idx = 0;
 
@@ -31,10 +31,10 @@ bool QueryGraph::LoadAndProcessGraph(const DataGraph &data) {
   for (Vertex v = 0; v < GetNumVertices(); ++v) {
     Label l = data.GetTransferredLabel(label_[v]);
     if (l == INVALID_LB) return false;
-    if (markingFreq[l] == 0) num_label_ += 1;
+    if (label_frequency_[l] == 0) num_label_ += 1;
     label_[v] = l;
     max_label_ = std::max(max_label_, l);
-    markingFreq[l] += 1;
+    label_frequency_[l] += 1;
     if (adj_list[v].size() > max_degree_) max_degree_ = adj_list[v].size();
 
     start_off_[v] = cur_idx;

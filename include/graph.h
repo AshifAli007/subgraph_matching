@@ -47,7 +47,7 @@ class Graph {
   Label* label_;
   Size* start_off_;
   Vertex* linear_adj_list_;
-  Size* markingFreq;
+  Size* label_frequency_;
 
   Size* core_num_;
 
@@ -76,7 +76,7 @@ inline Size Graph::GetDegree(Vertex v) const {
 inline Size Graph::GetCoreNum(Vertex v) const { return core_num_[v]; }
 
 inline Label Graph::GetLabelFrequency(Label l) const {
-  return markingFreq[l];
+  return label_frequency_[l];
 }
 
 inline Vertex Graph::GetNeighbor(Size i) const { return linear_adj_list_[i]; }

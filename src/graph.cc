@@ -19,7 +19,7 @@ Graph::~Graph() {
 // delete[] adjList;
   delete[] start_off_;
   delete[] core_num_;
-  delete[] markingFreq;
+  delete[] label_frequency_;
   }
  
 
