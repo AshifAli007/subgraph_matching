@@ -193,13 +193,15 @@ void Backtrack::ComputeExtendable(Size u_nbr_idx,
                                   Size cs_v_idx, Vertex u, Vertex u_nbr) {
   BacktrackHelper *u_nbr_helper = helpers_ + u_nbr;
 
-  Size *extendable_indices = u_nbr_helper->GetExtendableIndices();
-  Size &num_extendable = u_nbr_helper->GetNumExtendable();
+  Vertex nextNode = true;
   Size &num_unmapped_extendable = u_nbr_helper->GetNumUnmappedExtendable();
-
-  if (u_nbr_helper->GetNumMappedNeighbors() == 1) {
+  Size &num_extendable = u_nbr_helper->GetNumExtendable();
+  Size *extendable_indices = u_nbr_helper->GetExtendableIndices();
+  
+  
+  if (nextNode && u_nbr_helper->GetNumMappedNeighbors() == 1) {
     for (Size i = cs_.GetCandidateStartOffset(u, u_nbr_idx, cs_v_idx);
-         i < cs_.GetCandidateEndOffset(u, u_nbr_idx, cs_v_idx); ++i) {
+         i < cs_.GetCandidateEndOffset(u, u_nbr_idx, cs_v_idx);) {
       Size v_nbr_idx = cs_.GetCandidateIndex(i);
       Vertex v_nbr = cs_.GetCandidate(u_nbr, v_nbr_idx);
 
@@ -208,23 +210,24 @@ void Backtrack::ComputeExtendable(Size u_nbr_idx,
       if (mapped_query_vtx_[v_nbr] == INVALID_VTX) {
         num_unmapped_extendable += 1;
       }
+      i++;
     }
   } else {
     // intersection
-    Size i = 0;
     Size j = cs_.GetCandidateStartOffset(u, u_nbr_idx, cs_v_idx);
+    Size i = 0;
 
-    Size num_prev_extendable = u_nbr_helper->GetNumPrevExtendable();
     Size candidate_end_offset =
         cs_.GetCandidateEndOffset(u, u_nbr_idx, cs_v_idx);
-
     Size *prev_extendable_indices = u_nbr_helper->GetPrevExtendableIndices();
+    Size num_prev_extendable = u_nbr_helper->GetNumPrevExtendable();
 
-    while (i < num_prev_extendable && j < candidate_end_offset) {
-      Size vi = prev_extendable_indices[i];
+
+    while (i < num_prev_extendable && nextNode && j < candidate_end_offset) {
       Size vj = cs_.GetCandidateIndex(j);
+      Size vi = prev_extendable_indices[i];
 
-      if (vi == vj) {
+      if (vj == vi) {
         Vertex v_nbr = cs_.GetCandidate(u_nbr, vi);
 
         extendable_indices[num_extendable] = vi;
@@ -234,9 +237,9 @@ void Backtrack::ComputeExtendable(Size u_nbr_idx,
           num_unmapped_extendable += 1;
         }
 
-        i += 1;
         j += 1;
-      } else if (vi < vj) {
+        i += 1;
+      } else if (vj > vi) {
         i += 1;
       } else {
         j += 1;
