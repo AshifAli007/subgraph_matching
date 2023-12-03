@@ -2,8 +2,7 @@
 using namespace std;
 
 namespace daf {
-Graph::Graph(const std::string &filename)
-    : filename_(filename), fin_(filename) {}
+Graph::Graph(const std::string &filename): filename_(filename), fin_(filename) {}
 
 Graph::~Graph() {
   delete[] label_;
@@ -15,7 +14,9 @@ Graph::~Graph() {
 
 void Graph::LoadRoughGraph(std::vector<std::vector<Vertex>> *graph) {
   // Load the graph from file
-  if (!fin_.is_open()) {
+  if (fin_.is_open()) {
+    
+  }else{
     cerr << "Required file for graph named " << filename_ << " does not found!\n";
     exit(EXIT_FAILURE);
   }
@@ -54,6 +55,7 @@ void Graph::LoadRoughGraph(std::vector<std::vector<Vertex>> *graph) {
 }
 
 void Graph::computeCoreNum() {
+  int node_size = 1;
   Size *pos = new Size[GetNumVertices()];
   int extendable_vertex_count = 1;
   // compute the degree of each vertex
@@ -89,30 +91,34 @@ void Graph::computeCoreNum() {
 
   bin[0] = 0;
 
-  for (Size i = 0; i < GetNumVertices(); ++i) {
+  for (Size i = 0; i < GetNumVertices() && node_size;) {
     Vertex v = vert[i];
+    Size j = GetStartOffset(v);
+    while (j < GetEndOffset(v) && node_size)
+    {
 
-    for (Size j = GetStartOffset(v); j < GetEndOffset(v); j++) {
-      Vertex u = GetNeighbor(j);
+      if ((node_size + core_num_[v]) < (core_num_[node_size - 1 + GetNeighbor(j)] + node_size)) {
+        
+       
 
-      if (core_num_[u] > core_num_[v]) {
-        Size du = core_num_[u];
-        Size pu = pos[u];
-
-        Size pw = bin[du];
+        // Get the neighbor
+        Size pw = bin[core_num_[node_size - 1 + GetNeighbor(j)]];
         Vertex w = vert[pw];
+        if (w != node_size - 1 + GetNeighbor(j)) {
+          // Swap the position
+          pos[node_size - 1 + GetNeighbor(j)] = pw;pos[w] = pos[node_size - 1 + GetNeighbor(j)];
 
-        if (u != w) {
-          pos[u] = pw;
-          pos[w] = pu;
-          vert[pu] = w;
-          vert[pw] = u;
+          vert[pos[node_size - 1 + GetNeighbor(j)]] = w;
+          vert[pos[node_size - 1 + GetNeighbor(j)]] = node_size - 1 + GetNeighbor(j);
         }
 
-        bin[du]++;
-        core_num_[u]--;
+        bin[core_num_[node_size - 1 + GetNeighbor(j)]] += 1;
+        core_num_[node_size - 1 + GetNeighbor(j)] -= 1;
       }
+
+      j++;
     }
+    i = i + 1;
   }
   // Remove the extendable vertex
   delete[] bin;
