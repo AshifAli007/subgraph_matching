@@ -37,23 +37,24 @@ for (Vertex u = 0; u < query_.GetNumVertices(); ++u) {
 uint64_t Backtrack::FindMatches(uint64_t limit) {
 
   Vertex root_vertex = GetRootVertex();
+
   Size root_cs_size = cs_.GetCandidateSetSize(root_vertex);
 
   extendable_queue_->Insert(root_vertex, root_cs_size);
 
   InitializeNodeStack();
-
-  while (backtrack_depth_ > 0) {
-    if (limit <= num_embeddings_) {
+  int i = 1;
+  while (i && backtrack_depth_ > 0) {
+    if (num_embeddings_ >= limit) {
       return num_embeddings_;
     }
 
-    SearchTreeNode *cur_node = node_stack_ + backtrack_depth_;
     SearchTreeNode *parent_node = node_stack_ + (backtrack_depth_ - 1);
-
     BacktrackHelper *u_helper;
+    SearchTreeNode *cur_node = node_stack_ + backtrack_depth_;
 
-    if (cur_node->initialized == true) {
+
+    if (cur_node->initialized == true && i) {
       // backtrack from child node
       ReleaseNeighbors(cur_node);
 
@@ -61,8 +62,8 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
 
       if (cur_node->embedding_founded) {
 
-        parent_node->embedding_founded = true;
         cur_node->v_idx += 1;
+        parent_node->embedding_founded = true;
       } else {
         if (cur_node->failing_set.test(cur_node->u) == false) {
          
@@ -78,20 +79,21 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
       // newly expanded search tree node
       num_backtrack_calls_ += 1;
 
-      cur_node->initialized = true;
-      cur_node->u = extendable_queue_->PopMinWeight();
       cur_node->v_idx = 0;
+      cur_node->u = extendable_queue_->PopMinWeight();
       cur_node->embedding_founded = false;
-      cur_node->failing_set.reset();
-
+      cur_node->initialized = true;
       u_helper = helpers_ + cur_node->u;
+      cur_node->failing_set.reset();
       u_helper->GetMappingState() = MAPPED;
+
     }
 
     Size num_extendable = u_helper->GetNumExtendable();
 
-    while (cur_node->v_idx < num_extendable) {
+    while (i && cur_node->v_idx < num_extendable) {
       Size cs_v_idx = u_helper->GetExtendableIndex(cur_node->v_idx);
+
       cur_node->v = cs_.GetCandidate(cur_node->u, cs_v_idx);
 
       if (mapped_query_vtx_[cur_node->v] == INVALID_VTX) {
@@ -195,20 +197,21 @@ void Backtrack::ComputeExtendable(Size u_nbr_idx,
 
   Vertex nextNode = true;
   Size &num_unmapped_extendable = u_nbr_helper->GetNumUnmappedExtendable();
-  Size &num_extendable = u_nbr_helper->GetNumExtendable();
   Size *extendable_indices = u_nbr_helper->GetExtendableIndices();
   
-  
+  Size &num_extendable = u_nbr_helper->GetNumExtendable();
+  Vertex node_stack_size = 1;
   if (nextNode && u_nbr_helper->GetNumMappedNeighbors() == 1) {
     for (Size i = cs_.GetCandidateStartOffset(u, u_nbr_idx, cs_v_idx);
          i < cs_.GetCandidateEndOffset(u, u_nbr_idx, cs_v_idx);) {
+
       Size v_nbr_idx = cs_.GetCandidateIndex(i);
       Vertex v_nbr = cs_.GetCandidate(u_nbr, v_nbr_idx);
 
       extendable_indices[num_extendable] = v_nbr_idx;
-      num_extendable += 1;
-      if (mapped_query_vtx_[v_nbr] == INVALID_VTX) {
-        num_unmapped_extendable += 1;
+      num_extendable++;
+      if (INVALID_VTX == mapped_query_vtx_[v_nbr]) {
+        num_unmapped_extendable++;
       }
       i++;
     }
@@ -223,7 +226,7 @@ void Backtrack::ComputeExtendable(Size u_nbr_idx,
     Size num_prev_extendable = u_nbr_helper->GetNumPrevExtendable();
 
 
-    while (i < num_prev_extendable && nextNode && j < candidate_end_offset) {
+    while (i < num_prev_extendable && nextNode && j < candidate_end_offset && node_stack_size) {
       Size vj = cs_.GetCandidateIndex(j);
       Size vi = prev_extendable_indices[i];
 
