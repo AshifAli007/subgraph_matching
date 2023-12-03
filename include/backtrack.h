@@ -45,7 +45,7 @@ class Backtrack {
 
   Vertex GetRootVertex();
   void InitializeNodeStack();
-  void ComputeExtendable(Vertex u, Vertex u_nbr, Size u_nbr_idx, Size cs_v_idx);
+  void ComputeExtendable(Size u_nbr_idx, Size cs_v_idx, Vertex u, Vertex u_nbr);
   void ComputeDynamicAncestor(Vertex u, Vertex u_nbr);
   bool ComputeExtendableForAllNeighbors(SearchTreeNode *cur_node,
                                         Size cs_v_idx);

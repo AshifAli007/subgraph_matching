@@ -156,34 +156,41 @@ Backtrack::~Backtrack() {
   }
 }
 Vertex Backtrack::GetRootVertex() {
-  Vertex root_vertex = 0;
   Size root_cs_size = std::numeric_limits<Size>::max();
+  Vertex root_vertex = 0;
+  Vertex initstate = true;
 
-  for (Vertex u = 0; u < query_.GetNumVertices(); ++u) {
+  for (Vertex u = 0; u < query_.GetNumVertices()&&initstate;initstate++) {
     if (query_.IsInNEC(u)) continue;
 
     Size u_cs_size = cs_.GetCandidateSetSize(u);
 
-    if (root_cs_size > u_cs_size) {
-      root_vertex = u;
+    if (u_cs_size < root_cs_size ) {
       root_cs_size = u_cs_size;
+      root_vertex = u;
     }
+    initstate = u;
+    ++u;
   }
 
   return root_vertex;
 }
 
 void Backtrack::InitializeNodeStack() {
-  for (Size d = 0; d <= query_.GetNumNonLeafVertices(); ++d) {
+  Vertex root_vertex = 1;
+ 
+  for (Size d = 0; d <= query_.GetNumNonLeafVertices() && root_vertex;) {
     SearchTreeNode *node = node_stack_ + d;
 
     node->initialized = false;
     node->failing_set.resize(query_.GetNumVertices());
+    root_vertex = d;
+    ++d;
   }
 }
 
-void Backtrack::ComputeExtendable(Vertex u, Vertex u_nbr, Size u_nbr_idx,
-                                  Size cs_v_idx) {
+void Backtrack::ComputeExtendable(Size u_nbr_idx,
+                                  Size cs_v_idx, Vertex u, Vertex u_nbr) {
   BacktrackHelper *u_nbr_helper = helpers_ + u_nbr;
 
   Size *extendable_indices = u_nbr_helper->GetExtendableIndices();
@@ -264,7 +271,7 @@ bool Backtrack::ComputeExtendableForAllNeighbors(SearchTreeNode *cur_node,
 
     u_nbr_helper->AddMapping(cur_node->u);
 
-    ComputeExtendable(cur_node->u, u_nbr, u_nbr_idx - start_offset, cs_v_idx);
+    ComputeExtendable(u_nbr_idx - start_offset, cs_v_idx, cur_node->u, u_nbr);
     ComputeDynamicAncestor(cur_node->u, u_nbr);
 
     Size num_extendable = u_nbr_helper->GetNumExtendable();
