@@ -19,11 +19,11 @@ bool QueryGraph::LoadAndProcessGraph(const DataGraph &data) {
   num_label_ = 0;
   max_label_ = 0;
 
-  label_frequency_ = new Size[data.GetNumLabels()];
-  start_off_ = new Size[GetNumVertices() + 1];
-  linear_adj_list_ = new Vertex[GetNumEdges() * 2];
-  core_num_ = new Size[GetNumVertices()];
-  std::fill(label_frequency_, label_frequency_ + data.GetNumLabels(), 0);
+  markingFreq = new Size[data.GetNumLabels()];
+  offStart = new Size[GetNumVertices() + 1];
+  linearAdjList = new Vertex[GetNumEdges() * 2];
+  noOfCore = new Size[GetNumVertices()];
+  std::fill(markingFreq, markingFreq + data.GetNumLabels(), 0);
 
   Size cur_idx = 0;
 
@@ -31,21 +31,21 @@ bool QueryGraph::LoadAndProcessGraph(const DataGraph &data) {
   for (Vertex v = 0; v < GetNumVertices(); ++v) {
     Label l = data.GetTransferredLabel(label_[v]);
     if (l == INVALID_LB) return false;
-    if (label_frequency_[l] == 0) num_label_ += 1;
+    if (markingFreq[l] == 0) num_label_ += 1;
     label_[v] = l;
     max_label_ = std::max(max_label_, l);
-    label_frequency_[l] += 1;
+    markingFreq[l] += 1;
     if (adj_list[v].size() > max_degree_) max_degree_ = adj_list[v].size();
 
-    start_off_[v] = cur_idx;
-    core_num_[v] = adj_list[v].size();
+    offStart[v] = cur_idx;
+    noOfCore[v] = adj_list[v].size();
 
     std::copy(adj_list[v].begin(), adj_list[v].end(),
-              linear_adj_list_ + cur_idx);
+              linearAdjList + cur_idx);
 
     cur_idx += adj_list[v].size();
   }
-  start_off_[GetNumVertices()] = num_edge_ * 2;
+  offStart[GetNumVertices()] = num_edge_ * 2;
 
   // preprocess for query graph
   computeCoreNum();

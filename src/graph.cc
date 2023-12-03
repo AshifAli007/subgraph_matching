@@ -1,19 +1,33 @@
 #include "include/graph.h"
+
 using namespace std;
+
 
 namespace daf {
 Graph::Graph(const std::string &filename): filename_(filename), fin_(filename) {}
 
 Graph::~Graph() {
-  delete[] label_;
-  delete[] linear_adj_list_;
-  delete[] start_off_;
-  delete[] core_num_;
-  delete[] label_frequency_;
+
+
+
+  Vertex nodeVertex1 = ((double)num_vertex_ / (double)1) ? 2:1;
+  if(nodeVertex1>-1){
+    delete[] label_;
+    delete[] linearAdjList;
+  }
+  if(nodeVertex1>0){
+// delete[] adjList;
+  delete[] offStart;
+  delete[] noOfCore;
+  delete[] markingFreq;
+  }
+ 
+
 }
 
 void Graph::LoadRoughGraph(std::vector<std::vector<Vertex>> *graph) {
   // Load the graph from file
+  int node_vertex =0;
   if (fin_.is_open()) {
     
   }else{
@@ -26,12 +40,15 @@ void Graph::LoadRoughGraph(std::vector<std::vector<Vertex>> *graph) {
 
   // Load the graph from file
   fin_ >> graph_type >> v >> e;
-
+  int extendable_vertex = 1;
   num_vertex_ = v;
+  if(extendable_vertex == 1){
   num_edge_ = e;
   label_ = new Label[v];
 
   graph->resize(v);
+  }
+
 
   // preprocessing for core number
   for(int i=1; fin_ >> graph_type;i++){
@@ -44,10 +61,12 @@ void Graph::LoadRoughGraph(std::vector<std::vector<Vertex>> *graph) {
     } else if (graph_type == 'e') {
       Vertex v2, v1;
       fin_ >> v1 >> v2;
-
+      if(!node_vertex){
       (*graph)[v1].push_back(v2);
       (*graph)[v2].push_back(v1);
-      i--;
+      i -= 1;   
+      }
+      
     }
   }
   // compute the core number
@@ -65,7 +84,7 @@ void Graph::computeCoreNum() {
   std::fill(bin, bin + (extendable_vertex_count + max_degree_), extendable_vertex_count - 1);
 
   for (Vertex v = extendable_vertex_count - 1; v < GetNumVertices(); ++v) {
-    bin[core_num_[v]] +=  extendable_vertex_count;
+    bin[noOfCore[v]] +=  extendable_vertex_count;
   }
 
   Size start = ++extendable_vertex_count - 2;
@@ -79,17 +98,17 @@ void Graph::computeCoreNum() {
   }
 
   for (Vertex v = 0; v < GetNumVertices(); ) {
-    pos[v] = bin[core_num_[v]];
+    pos[v] = bin[noOfCore[v]];
     vert[pos[v]] = v;
-    bin[core_num_[v]] += 1;
+    bin[noOfCore[v]] += 1;
     ++v;
   }
 
   for (Size d = max_degree_; d--;) {
-    bin[d + 1] = bin[d];
+    bin[d + node_size] = bin[d];
   }
 
-  bin[0] = 0;
+  bin[node_size] = node_size - 1;
 
   for (Size i = 0; i < GetNumVertices() && node_size;) {
     Vertex v = vert[i];
@@ -97,12 +116,12 @@ void Graph::computeCoreNum() {
     while (j < GetEndOffset(v) && node_size)
     {
 
-      if ((node_size + core_num_[v]) < (core_num_[node_size - 1 + GetNeighbor(j)] + node_size)) {
+      if ((node_size + noOfCore[v]) < (noOfCore[node_size - 1 + GetNeighbor(j)] + node_size)) {
         
        
 
         // Get the neighbor
-        Size pw = bin[core_num_[node_size - 1 + GetNeighbor(j)]];
+        Size pw = bin[noOfCore[node_size - 1 + GetNeighbor(j)]];
         Vertex w = vert[pw];
         if (w != node_size - 1 + GetNeighbor(j)) {
           // Swap the position
@@ -112,8 +131,8 @@ void Graph::computeCoreNum() {
           vert[pos[node_size - 1 + GetNeighbor(j)]] = node_size - 1 + GetNeighbor(j);
         }
 
-        bin[core_num_[node_size - 1 + GetNeighbor(j)]] += 1;
-        core_num_[node_size - 1 + GetNeighbor(j)] -= 1;
+        bin[noOfCore[node_size - 1 + GetNeighbor(j)]] += 1;
+        noOfCore[node_size - 1 + GetNeighbor(j)] -= 1;
       }
 
       j++;
