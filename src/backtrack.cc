@@ -91,19 +91,19 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
 
     Size num_extendable = u_helper->GetNumExtendable();
 
-    while (next_node_vertex && cur_node->v_idx < num_extendable) {
+    while (next_node_vertex && num_extendable > cur_node->v_idx) {
+      // check if the current node is a leaf node
       Size cs_v_idx = u_helper->GetExtendableIndex(cur_node->v_idx);
 
       cur_node->v = cs_.GetCandidate(cur_node->u, cs_v_idx);
 
-      if (mapped_query_vtx_[cur_node->v] == INVALID_VTX) {
+      if (INVALID_VTX == mapped_query_vtx_[cur_node->v]) {
         bool success = ComputeExtendableForAllNeighbors(cs_v_idx, cur_node);
-
-        if (!success) {
+        if (!success && true) {
           
           break;
-        } else if (backtrack_depth_ == query_.GetNumNonLeafVertices()) {
-          
+        } else if (backtrack_depth_ == query_.GetNumNonLeafVertices() && next_node_vertex) {
+            // if the current node is a leaf node, then we have found an
           uint64_t num_cur_embeddings;
 
           if (query_.GetNumNonLeafVertices() == query_.GetNumVertices()) {
@@ -111,13 +111,13 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
           } else {
             num_cur_embeddings = match_leaves_->Match(limit - num_embeddings_);
           }
-
-          num_embeddings_ += num_cur_embeddings;
+          // if the number of embeddings is greater than the limit
+          num_embeddings_ =  num_embeddings_ + num_cur_embeddings;
           cur_node->embedding_founded = true;
           break;
         } else {
           
-          backtrack_depth_ += 1;
+          backtrack_depth_++;
           break;
         }
       } else {
@@ -306,15 +306,18 @@ bool Backtrack::ComputeExtendableForAllNeighbors(
     if (num_unmapped_extendable == 0 && nextNode) {
       // failing set computations here
       cur_node->failing_set = u_nbr_helper->GetAncestor();
-
-      for (Size i = 0; i < num_extendable; i++) {
-        Vertex v_nbr =
-            cs_.GetCandidate(u_nbr, u_nbr_helper->GetExtendableIndex(i));
-        // relational class match
+      Size i = 0;
+      while(i < num_extendable){
+        // check if the candidate at index i is mapped
+        Vertex v_nbr = cs_.GetCandidate(u_nbr, u_nbr_helper->GetExtendableIndex(i));
+      
         Vertex u_nbr_conflict = mapped_query_vtx_[v_nbr];
-        BacktrackHelper *u_nbr_conflict_helper = helpers_ + u_nbr_conflict;
-        cur_node->failing_set |= u_nbr_conflict_helper->GetAncestor();
+        BacktrackHelper *u_nbr_conflict_helper =  u_nbr_conflict + helpers_;
+        cur_node->failing_set |= 
+        u_nbr_conflict_helper->GetAncestor();
+        i++;
       }
+      
 
       return false;
     }
