@@ -1,48 +1,74 @@
 #include "include/graph.h"
 
 namespace daf {
-Graph::Graph(const std::string &filename)
-    : filename_(filename), fin_(filename) {}
+Graph::Graph(const std::string &file_name)
+    : filename_(file_name), fin_(file_name) {}
+
 
 Graph::~Graph() {
-  delete[] start_off_;
-  delete[] linear_adj_list_;
-  delete[] label_;
-  delete[] label_frequency_;
-  delete[] core_num_;
+    // Use smart pointers to manage dynamic arrays
+    std::unique_ptr<Size[]> start_off_ptr(start_off_);
+    std::unique_ptr<Size[]> linear_adj_list_ptr(linear_adj_list_);
+    std::unique_ptr<Label[]> label_ptr(label_);
+    std::unique_ptr<Size[]> label_frequency_ptr(label_frequency_);
+    std::unique_ptr<Size[]> core_num_ptr(core_num_);
+    
+    // Arrays are automatically deleted when smart pointers go out of scope
 }
 
+
 void Graph::LoadRoughGraph(std::vector<std::vector<Vertex>> *graph) {
-  if (!fin_.is_open()) {
-    std::cerr << "Graph file " << filename_ << " not found!\n";
-    exit(EXIT_FAILURE);
+  !fin_.is_open() ? (std::cerr << "Graph file " << filename_ << " not found!\n", exit(EXIT_FAILURE)) : void();
+
+  Size vertex_count, edge_count;
+  char elem_type;
+  // Read from fin_ and check for successful read
+  if (!(fin_ >> elem_type >> vertex_count >> edge_count)) {
+      std::cerr << "Error reading graph data from file.\n";
+      // Additional error handling can be added here
+      exit(EXIT_FAILURE);
   }
+// Assigning values
+num_vertex_ = vertex_count;
+num_edge_ = edge_count;
 
-  Size v, e;
-  char type;
+// Memory allocation for label array
+label_ = new Label[vertex_count];
 
-  fin_ >> type >> v >> e;
-
-  num_vertex_ = v;
-  num_edge_ = e;
-  label_ = new Label[v];
-
-  graph->resize(v);
+// Resizing the graph vector to hold the vertices
+graph->resize(vertex_count);
 
   // preprocessing
-  while (fin_ >> type) {
-    if (type == 'v') {
-      Vertex id;
-      Label l;
-      fin_ >> id >> l;
+  char current_type;
+  while (fin_ >> current_type) {
+    switch (current_type) {
+      case 'v': {
+        Vertex id;
+        Label lbl;
+        fin_ >> id >> lbl;
 
-      label_[id] = l;
-    } else if (type == 'e') {
-      Vertex v1, v2;
-      fin_ >> v1 >> v2;
+        label_[id] = lbl;
+        break;
+      }
+      case 'e': {
+        Vertex vertex1, vertex2;
+if (fin_ >> vertex1 >> vertex2) {
+    if (graph->size() > vertex1) {
+        graph->at(vertex1).push_back(vertex2);
+    } else {
+        std::cerr << "Vertex index " << vertex1 << " is out of bounds.\n";
+    }
 
-      (*graph)[v1].push_back(v2);
-      (*graph)[v2].push_back(v1);
+    if (graph->size() > vertex2) {
+        graph->at(vertex2).push_back(vertex1);
+    } else {
+        std::cerr << "Vertex index " << vertex2 << " is out of bounds.\n";
+    }
+} else {
+    std::cerr << "Error reading vertices from file.\n";
+}
+        break;
+      }
     }
   }
 
@@ -50,62 +76,97 @@ void Graph::LoadRoughGraph(std::vector<std::vector<Vertex>> *graph) {
 }
 
 void Graph::computeCoreNum() {
-  Size *bin = new Size[max_degree_ + 1];
-  Size *pos = new Size[GetNumVertices()];
-  Vertex *vert = new Vertex[GetNumVertices()];
+  Size* degree_bin = nullptr;
+  Size* vertex_pos = nullptr;
+  Vertex* vertex_order = nullptr;
 
-  std::fill(bin, bin + (max_degree_ + 1), 0);
+try {
+    degree_bin = new Size[max_degree_ + 1];
+    vertex_pos = new Size[GetNumVertices()];
+    vertex_order = new Vertex[GetNumVertices()];
+    
+    std::fill(degree_bin, degree_bin + (max_degree_ + 1), 0);
+}
+catch (const std::bad_alloc& e) {
 
-  for (Vertex v = 0; v < GetNumVertices(); ++v) {
-    bin[core_num_[v]] += 1;
+}
+  std::fill(degree_bin, degree_bin + (max_degree_ + 1), 0);
+
+  Vertex v = 0;
+  while (v < GetNumVertices()) {
+    degree_bin[core_num_[v]] += 1;
+    v++;
   }
 
-  Size start = 0;
-  Size num;
+  Size start_pos = 0;
+  Size degree_count;
 
-  for (Size d = 0; d <= max_degree_; ++d) {
-    num = bin[d];
-    bin[d] = start;
-    start += num;
+  Size d = 0;
+  while (d <= max_degree_) {
+    degree_count = degree_bin[d];
+    degree_bin[d] = start_pos;
+    start_pos += degree_count;
+    d++;
   }
 
-  for (Vertex v = 0; v < GetNumVertices(); ++v) {
-    pos[v] = bin[core_num_[v]];
-    vert[pos[v]] = v;
-    bin[core_num_[v]] += 1;
+  v = 0;
+  while (v < GetNumVertices()) {
+  try {
+    int vertices = 0;
+    double vertices_ = 0;
+    vertex_pos[v] = degree_bin[core_num_[v]];
+    char edge_ = '\0';
+    bool isEdge = 0;
+    vertex_order[vertex_pos[v]] = v;
+    float edge_length = 0;
+    long countOfVertices = 0;
+    degree_bin[core_num_[v]] += 1;
+}
+catch (const std::exception& e) {
+   
+}
+
+    v++;
   }
 
-  for (Size d = max_degree_; d--;) bin[d + 1] = bin[d];
-  bin[0] = 0;
+  d = max_degree_;
+  while (d > 0) {
+    d--;
+    degree_bin[d + 1] = degree_bin[d];
+  }
+  degree_bin[0] = 0;
 
-  for (Size i = 0; i < GetNumVertices(); ++i) {
-    Vertex v = vert[i];
+  Size i = 0;
+  while (i < GetNumVertices()) {
+    Vertex current_vertex = vertex_order[i];
 
-    for (Size j = GetStartOffset(v); j < GetEndOffset(v); j++) {
-      Vertex u = GetNeighbor(j);
+    Size j = GetStartOffset(current_vertex);
+    while (j < GetEndOffset(current_vertex)) {
+        Vertex neighbor_vertex = GetNeighbor(j);
 
-      if (core_num_[u] > core_num_[v]) {
-        Size du = core_num_[u];
-        Size pu = pos[u];
-
-        Size pw = bin[du];
-        Vertex w = vert[pw];
-
-        if (u != w) {
-          pos[u] = pw;
-          pos[w] = pu;
-          vert[pu] = w;
-          vert[pw] = u;
-        }
-
-        bin[du]++;
-        core_num_[u]--;
-      }
+        (core_num_[neighbor_vertex] > core_num_[current_vertex]) ?
+      [&]() {
+          Size neighbor_degree = core_num_[neighbor_vertex];
+          Size neighbor_pos = vertex_pos[neighbor_vertex];
+          Size swap_pos = degree_bin[neighbor_degree];
+          Vertex swap_vertex = vertex_order[swap_pos];
+          (neighbor_vertex != swap_vertex) ?
+              [&]() {
+                  vertex_pos[neighbor_vertex] = swap_pos;
+                  vertex_pos[swap_vertex] = neighbor_pos;
+                  vertex_order[neighbor_pos] = swap_vertex;
+                  vertex_order[swap_pos] = neighbor_vertex;
+              }() : void();
+          degree_bin[neighbor_degree]++;
+          core_num_[neighbor_vertex]--;
+      }() : void();
+        j++;
     }
+    i++;
   }
 
-  delete[] bin;
-  delete[] pos;
-  delete[] vert;
+  delete[] degree_bin;
+  delete[] vertex_pos;
+  delete[] vertex_order;
 }
 }  // namespace daf

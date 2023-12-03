@@ -9,3 +9,4 @@ include_directories(${PROJECT_SOURCE_DIR})
 file(GLOB SOURCES src/*.cc)
 
 add_subdirectory(main)
+
