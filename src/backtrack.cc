@@ -3,21 +3,24 @@
 namespace daf {
 Backtrack::Backtrack( const QueryGraph &query, const CandidateSpace &cs, const DataGraph &data)
   :data_(data), query_(query), cs_(cs) {
-  
+
+    // Create the helper array
+  mapped_nodes_ = new SearchTreeNode *[query_.GetNumVertices()];
+  helpers_ = new BacktrackHelper[query_.GetNumVertices()];
   // Create the helper array
+
+
+  mapped_query_vtx_ = new Vertex[data_.GetNumVertices()];
+  node_stack_ = new SearchTreeNode[query_.GetNumNonLeafVertices() + 1];
+
   num_embeddings_ = 0;
   num_backtrack_calls_ = 0;
   backtrack_depth_ = 1;
 
-  mapped_query_vtx_ = new Vertex[data_.GetNumVertices()];
-  node_stack_ = new SearchTreeNode[query_.GetNumNonLeafVertices() + 1];
-  mapped_nodes_ = new SearchTreeNode *[query_.GetNumVertices()];
-  helpers_ = new BacktrackHelper[query_.GetNumVertices()];
-
   extendable_queue_ = new Ordering(query_.GetNumVertices());
 
 
-  if (query_.GetNumVertices() < query_.GetNumNonLeafVertices()) {
+  if (query_.GetNumVertices() > query_.GetNumNonLeafVertices()) {
     match_leaves_ = nullptr;
     
   } else {
@@ -277,13 +280,12 @@ bool Backtrack::ComputeExtendableForAllNeighbors(
   Size start_offset = query_.GetStartOffset(cur_node->u);
 
   for (Size u_nbr_idx = start_offset; u_nbr_idx < end_offset && extendible_vertices_count; u_nbr_idx++) {
-    Vertex u_nbr = query_.GetNeighbor(u_nbr_idx);
     // Find the neighbor of u at index u_nbr_idx
+    Vertex u_nbr = query_.GetNeighbor(u_nbr_idx);
     // Find the candidate set of u_nbr
-    BacktrackHelper *u_nbr_helper = helpers_ + u_nbr;
+    BacktrackHelper *u_nbr_helper = (u_nbr + helpers_);
     
-    if (u_nbr_helper->GetMappingState() == MAPPED ||
-        (query_.IsInNEC(u_nbr) && !query_.IsNECRepresentation(u_nbr) && extendible_vertices_count))
+    if ((u_nbr_helper->GetMappingState() == MAPPED) || (query_.IsInNEC(u_nbr) && !query_.IsNECRepresentation(u_nbr) && extendible_vertices_count))
         // If the candidate set of u_nbr is empty, then continue
       continue;
 
