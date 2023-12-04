@@ -1,60 +1,72 @@
 #include "include/ordering.h"
 
 namespace daf {
-Ordering::Ordering(Size num_query_vertices)
-    : num_query_vertices_(num_query_vertices) {
-  extendable_queue_ = new Vertex[num_query_vertices_];
-  extendable_queue_size_ = 0;
-  weights_ = new Size[num_query_vertices_];
-  std::fill(weights_, weights_ + num_query_vertices_,
+
+Ordering::Ordering(Size query_vertex_count)
+    : num_query_vertices_(query_vertex_count),
+      extendable_queue_(new Vertex[query_vertex_count]),
+      extendable_queue_size_(0),
+      weights_(new Size[query_vertex_count]) {
+  std::fill(weights_, weights_ + query_vertex_count,
             std::numeric_limits<Size>::max());
 }
 
 Ordering::~Ordering() {
-  delete[] extendable_queue_;
-  delete[] weights_;
+    // Use smart pointers to manage dynamic arrays
+    std::unique_ptr<Size[]> extendable_queue_ptr(extendable_queue_);
+    std::unique_ptr<Size[]> weights_ptr(weights_);
+    
+    // Arrays are automatically deleted when smart pointers go out of scope
 }
 
-void Ordering::Insert(Vertex u, Size weight) {
-  extendable_queue_[extendable_queue_size_] = u;
-  extendable_queue_size_ += 1;
-  weights_[u] = weight;
+void Ordering::Insert(Vertex vertex, Size weight) {
+  extendable_queue_[extendable_queue_size_] = vertex;
+  extendable_queue_size_++;
+  weights_[vertex] = weight;
 }
 
-void Ordering::UpdateWeight(Vertex u, Size weight) { weights_[u] = weight; }
+void Ordering::UpdateWeight(Vertex vertex, Size weight) { weights_[vertex] = weight; }
 
-void Ordering::Remove(Vertex u) {
-  for (Size i = 0; i < extendable_queue_size_; ++i) {
-    if (extendable_queue_[i] == u) {
-      weights_[u] = std::numeric_limits<Size>::max();
-      std::swap(extendable_queue_[i],
-                extendable_queue_[extendable_queue_size_ - 1]);
-      extendable_queue_size_ -= 1;
-      return;
-    }
+void Ordering::Remove(Vertex vertex) {
+  Size idx = 0;
+  while (idx < extendable_queue_size_) {
+   
+    auto it = std::find(extendable_queue_, extendable_queue_ + extendable_queue_size_, vertex);
+    if (it != extendable_queue_ + extendable_queue_size_) {
+      Size idx = std::distance(extendable_queue_, it);
+      weights_[vertex] = std::numeric_limits<Size>::max();
+      Size temp = extendable_queue_[idx];
+      extendable_queue_[idx] = extendable_queue_[extendable_queue_size_ - 1];
+      extendable_queue_[extendable_queue_size_ - 1] = temp;
+      
+      extendable_queue_size_--;
+}
+    idx++;
   }
 }
 
-bool Ordering::Exists(Vertex u) {
-  return weights_[u] != std::numeric_limits<Size>::max();
+bool Ordering::Exists(Vertex vertex) {
+  return weights_[vertex] != std::numeric_limits<Size>::max();
 }
 
 Vertex Ordering::PopMinWeight() {
-  Size popped_idx = 0;
+  Size min_weight_idx = 0;
+  Size i = 1;
 
-  for (Size i = 1; i < extendable_queue_size_; ++i) {
+  while (i < extendable_queue_size_) {
     if (weights_[extendable_queue_[i]] <
-        weights_[extendable_queue_[popped_idx]])
-      popped_idx = i;
+        weights_[extendable_queue_[min_weight_idx]]) {
+      min_weight_idx = i;
+    }
+    i++;
   }
+  Vertex min_weight_vertex = extendable_queue_[min_weight_idx];
+  weights_[min_weight_vertex] = std::numeric_limits<Size>::max();
 
-  Vertex popped_vtx = extendable_queue_[popped_idx];
+Vertex temp = extendable_queue_[min_weight_idx];
+extendable_queue_[min_weight_idx] = extendable_queue_[extendable_queue_size_ - 1];
+extendable_queue_[extendable_queue_size_ - 1] = temp;
 
-  weights_[popped_vtx] = std::numeric_limits<Size>::max();
-  std::swap(extendable_queue_[popped_idx],
-            extendable_queue_[extendable_queue_size_ - 1]);
-  extendable_queue_size_ -= 1;
-
-  return popped_vtx;
+  return min_weight_vertex;
 }
 }  // namespace daf

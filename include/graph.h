@@ -13,73 +13,53 @@ namespace daf {
 
 class Graph {
  public:
-  explicit Graph(const std::string& filename);
+  explicit Graph(const std::string& file_name);
   ~Graph();
 
-  Graph& operator=(const Graph&) = delete;
   Graph(const Graph&) = delete;
+  Graph& operator=(const Graph&) = delete;
 
-  inline Size GetNumLabels() const;
-  inline Size GetNumVertices() const;
-  inline Size GetNumEdges() const;
-  inline Size GetMaxDegree() const;
+  inline Size GetMaxDegree() const { return max_degree_; }
+  inline Size GetNumLabels() const { return num_label_; }
 
-  inline Label GetLabel(Vertex v) const;
-  inline Size GetStartOffset(Vertex v) const;
-  inline Size GetEndOffset(Vertex v) const;
-  inline Size GetDegree(Vertex v) const;
-  inline Size GetCoreNum(Vertex v) const;
+   
+  // Inline methods for accessing vertex properties
+  inline Label GetLabel(Vertex vertex) const { return label_[vertex]; }
+  inline Size GetDegree(Vertex vertex) const {
+    return start_off_[vertex + 1] - start_off_[vertex];
+  }
+  inline Size GetStartOffset(Vertex vertex) const { return start_off_[vertex]; }
+  inline Size GetEndOffset(Vertex vertex) const { return start_off_[vertex + 1]; }
+  inline Size GetCoreNum(Vertex vertex) const { return core_num_[vertex]; }
 
-  inline Label GetLabelFrequency(Label l) const;
+  // Inline method for label frequency
+  inline Label GetLabelFrequency(Label label_id) const {
+    return label_frequency_[label_id];
+  }
 
-  inline Vertex GetNeighbor(Size i) const;
+  // Method for accessing neighbors
+  inline Vertex GetNeighbor(Size index) const { return linear_adj_list_[index]; }
+  // Inline methods for accessing graph properties
+  inline Size GetNumVertices() const { return num_vertex_; }
+    inline Size GetNumEdges() const { return num_edge_; }
+   
 
  protected:
-  void LoadRoughGraph(std::vector<std::vector<Vertex>>* graph);
-  void computeCoreNum();
-
-  Size num_vertex_;
+  // Member variables
   Size num_edge_;
-  Size num_label_;
-
-  Size max_degree_;
-
   Label* label_;
   Size* start_off_;
   Vertex* linear_adj_list_;
+ void LoadRoughGraph(std::vector<std::vector<Vertex>>* graph_structure);
   Size* label_frequency_;
-
   Size* core_num_;
-
+  Size num_label_;
+  Size max_degree_;
+  void computeCoreNum();
   const std::string& filename_;
+  Size num_vertex_;
   std::ifstream fin_;
 };
-
-inline Size Graph::GetNumLabels() const { return num_label_; }
-
-inline Size Graph::GetNumVertices() const { return num_vertex_; }
-
-inline Size Graph::GetNumEdges() const { return num_edge_; }
-
-inline Size Graph::GetMaxDegree() const { return max_degree_; }
-
-inline Label Graph::GetLabel(Vertex v) const { return label_[v]; }
-
-inline Size Graph::GetStartOffset(Vertex v) const { return start_off_[v]; }
-
-inline Size Graph::GetEndOffset(Vertex v) const { return start_off_[v + 1]; }
-
-inline Size Graph::GetDegree(Vertex v) const {
-  return start_off_[v + 1] - start_off_[v];
-}
-
-inline Size Graph::GetCoreNum(Vertex v) const { return core_num_[v]; }
-
-inline Label Graph::GetLabelFrequency(Label l) const {
-  return label_frequency_[l];
-}
-
-inline Vertex Graph::GetNeighbor(Size i) const { return linear_adj_list_[i]; }
 
 }  // namespace daf
 

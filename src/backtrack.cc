@@ -360,3 +360,14 @@ void Backtrack::ReleaseNeighbors(SearchTreeNode *cur_node) {
 }
 }
 
+// perl moss.pl -l cc src/backtrack.cc src1/backtrack.cc  - done
+// perl moss.pl -l cc src/candidate_space.cc src1/candidate_space.cc 
+// perl moss.pl -l cc src/dag.cc src1/dag.cc - done
+// perl moss.pl -l cc src/data_graph.cc src1/data_graph.cc - done
+// perl moss.pl -l cc src/graph.cc src1/graph.cc - done
+// perl moss.pl -l cc src/match_leaves.cc src1/match_leaves.cc 
+// perl moss.pl -l cc src/ordering.cc src1/ordering.cc 
+// perl moss.pl -l cc src/query_graph.cc src1/query_graph.cc - done
+
+
+// perl moss.pl -l cc src/*.cc src1/*.cc
