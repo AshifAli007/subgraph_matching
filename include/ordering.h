@@ -8,19 +8,22 @@
 namespace daf {
 class Ordering {
  public:
-  explicit Ordering(Size num_query_vertices);
+  explicit Ordering(Size query_vertex_count);
   ~Ordering();
 
-  Ordering &operator=(const Ordering &) = delete;
+  // Delete copy constructor and copy assignment operator
   Ordering(const Ordering &) = delete;
+  Ordering &operator=(const Ordering &) = delete;
 
-  void Insert(Vertex u, Size weight);
-  void UpdateWeight(Vertex u, Size weight);
-  void Remove(Vertex u);
-  bool Exists(Vertex u);
+  // Methods for manipulating the ordering
+  void Insert(Vertex vertex, Size weight_value);
+  void UpdateWeight(Vertex vertex, Size new_weight);
+  bool Exists(Vertex vertex);
+  void Remove(Vertex vertex);
   Vertex PopMinWeight();
 
  private:
+  // Member variables
   Size num_query_vertices_;
   Vertex *extendable_queue_;
   Size extendable_queue_size_;
