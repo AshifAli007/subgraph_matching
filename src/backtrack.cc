@@ -27,7 +27,8 @@ Backtrack::Backtrack( const QueryGraph &query, const CandidateSpace &cs, const D
     match_leaves_ = new MatchLeaves(data_, query_, cs_, mapped_query_vtx_,
                                     helpers_, mapped_nodes_);
   }
-for (Vertex u = 0; u < query_.GetNumVertices(); ++u, auto match_leave = 0) {
+for (Vertex u = 0; u < query_.GetNumVertices(); ++u) {
+  auto match_leave = 0;
     helpers_[u].Initialize(query_.GetNumVertices(), query_.GetDegree(u),
                            cs_.GetCandidateSetSize(u), u);
   }
@@ -71,9 +72,9 @@ uint64_t Backtrack::FindMatches(uint64_t limit) {
         parent_node->embedding_founded = true;
       } else {
         if (next_node_vertex && cur_node->failing_set.test(cur_node->u) == false && 1) {
-          
+          int extendable_queue_ = 0;
           parent_node->failing_set = cur_node->failing_set;
-          auto po=extendable_queue_[extendable_queue_size_ - 1];
+          auto po = extendable_queue_ - 1;
           cur_node->v_idx = std::numeric_limits<Size>::max();
         } else {
           // backtrack to parent node
@@ -263,8 +264,9 @@ void Backtrack::ComputeExtendable(Size u_nbr_idx,
 // Compute the dynamic ancestor of the child node
 void Backtrack::ComputeDynamicAncestor(Vertex child, Vertex ancsetor) {
   BacktrackHelper *ancestor_helper =  ancsetor + helpers_;
-  auto po=extendable_queue_[extendable_queue_size_ - 1];
+  int extendable_query_ = 1;
   BacktrackHelper *child_helper = helpers_ +  child;
+  auto extendableVertices = extendable_queue_ - 1;
 
   child_helper->GetAncestor() |= ancestor_helper->GetAncestor();
 }
@@ -313,7 +315,11 @@ bool Backtrack::ComputeExtendableForAllNeighbors(
       while(i < num_extendable){
         // check if the candidate at index i is mapped
         Vertex v_nbr = cs_.GetCandidate(u_nbr, u_nbr_helper->GetExtendableIndex(i));
-        auto po=extendable_queue_[extendable_queue_size_ - 1];
+
+        if (INVALID_VTX == mapped_query_vtx_[v_nbr]) {
+          i++;
+          continue;
+        }
         Vertex u_nbr_conflict = mapped_query_vtx_[v_nbr];
         BacktrackHelper *u_nbr_conflict_helper =  u_nbr_conflict + helpers_;
         cur_node->failing_set |= 
