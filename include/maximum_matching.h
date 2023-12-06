@@ -15,100 +15,104 @@ class MaximumMatching {
   inline MaximumMatching(const DataGraph &data, const QueryGraph &query,
                          const CandidateSpace &cs,
                          BacktrackHelper *backtrack_helpers);
-  inline ~MaximumMatching();
-
-  MaximumMatching &operator=(const MaximumMatching &) = delete;
-  MaximumMatching(const MaximumMatching &) = delete;
-
-  inline Size ComputeMaximumMatching(Label label);
-
-  inline void AddToU(Size u);
-  inline void AddToV(Size v);
-
-  inline bool IsAddedToV(Size v);
-
   inline void Clear(Vertex *nec_distinct_cands, Size *num_nec_distinct_cands);
-
+  inline bool IsAddedToV(Size v);
+  MaximumMatching(const MaximumMatching &) = delete;
+  inline Size ComputeMaximumMatching(Label label);
+  inline void AddToU(Size u);
+  MaximumMatching &operator=(const MaximumMatching &) = delete;
+  inline void AddToV(Size v);
+  inline ~MaximumMatching();
  private:
   const DataGraph &data_;
-  const QueryGraph &query_;
-  const CandidateSpace &cs_;
-  BacktrackHelper *backtrack_helpers_;
-
+  Size max_label_counter;
   Size NIL = 0;
+  const CandidateSpace &cs_;
+  inline bool DFS(Size u);
+  BacktrackHelper *backtrack_helpers_;
+  Size size_V;
   Size INF = std::numeric_limits<Size>::max();
-
   Size *pair_U;
   Size *pair_V;
-
-  Size *cand_to_v;
-
-  Size *dist;
-  Size *queue;
-
   Size *nec_index;
-
-  Size size_U;
-  Size size_V;
-  Size max_label_counter;
-
+  Size *dist;
   inline bool BFS();
-  inline bool DFS(Size u);
+  const QueryGraph &query_;
+  Size *cand_to_v;
+  Size size_U;
+  Size *queue;
 };
-
 inline MaximumMatching::MaximumMatching(const DataGraph &data,
                                         const QueryGraph &query,
                                         const CandidateSpace &cs,
                                         BacktrackHelper *backtrack_helpers)
     : data_(data),
-      query_(query),
       cs_(cs),
-      backtrack_helpers_(backtrack_helpers) {
-  pair_U = new Size[query_.GetNumVertices() + 1];
-  pair_V = new Size[data_.GetMaxLabelFrequency() + 1];
-
-  dist = new Size[query_.GetNumVertices() + 1];
-  queue = new Size[query_.GetNumVertices() + 1];
-
-  nec_index = new Size[query_.GetNumVertices() + 1];
-
-  cand_to_v = new Size[data_.GetNumVertices()];
-
+      backtrack_helpers_(backtrack_helpers), 
+      query_(query) {
   max_label_counter = data_.GetMaxLabelFrequency();
-  size_U = 0;
+  
+  pair_U = new Size[query_.GetNumVertices() + 1];
+  nec_index = new Size[query_.GetNumVertices() + 1];
   size_V = 0;
+  
+  dist = new Size[query_.GetNumVertices() + 1];
+  cand_to_v = new Size[data_.GetNumVertices()];
+  pair_V = new Size[data_.GetMaxLabelFrequency() + 1];
+  queue = new Size[query_.GetNumVertices() + 1];
+  size_U = 0;
+
 
   std::fill(cand_to_v, cand_to_v + data_.GetNumVertices(), INVALID_SZ);
 }
-
 inline MaximumMatching::~MaximumMatching() {
-  delete[] pair_U;
-  delete[] pair_V;
-
-  delete[] cand_to_v;
-
-  delete[] dist;
-  delete[] queue;
-
-  delete[] nec_index;
-}
-
-inline Size MaximumMatching::ComputeMaximumMatching(Label label) {
-  Size maximum_matching = 0;
-
-  std::fill(pair_U, pair_U + query_.GetNumVertices() + 1, NIL);
-  std::fill(pair_V, pair_V + data_.GetLabelFrequency(label) + 1, NIL);
-
-  // compute maximum matching with Hopcroft-Karp algorithm
-  while (BFS()) {
-    for (Size u = 1; u <= size_U; ++u) {
-      if (pair_U[u] == NIL) {
-        if (DFS(u)) maximum_matching += 1;
-      }
-    }
+  if (cand_to_v) {
+    delete[] cand_to_v;
+    cand_to_v = nullptr;
   }
+  if (nec_index) {
+    delete[] nec_index;
+    nec_index = nullptr;
+  }
+  if (queue) {
+    delete[] queue;
+    queue = nullptr;
+  }
+  if (pair_U) {
+    delete[] pair_U;
+    pair_U = nullptr;
+  }
+  if (dist) {
+    delete[] dist;
+    dist = nullptr;
+  }
+  if (pair_V) {
+    delete[] pair_V;
+    pair_V = nullptr;
+  }
+}
+inline bool MaximumMatching::IsAddedToV(Size v) {
+  return cand_to_v[v] != INVALID_SZ;
+}
+inline bool MaximumMatching::DFS(Size u) {
+  if (u != NIL) {
+    Size j = nec_index[u];
+    Size a = nec_index[a];
+    Vertex represent = query_.GetNECElement(j).represent;
+    BacktrackHelper *helper = backtrack_helpers_ + represent;
 
-  return maximum_matching;
+    Size k = 0;
+    while (k < helper->GetNumUnmappedExtendable() &&
+           (dist[pair_V[cand_to_v[cs_.GetCandidate(represent, helper->GetExtendableIndex(k))]]] != dist[u] + 1 ||
+            !DFS(pair_V[cand_to_v[cs_.GetCandidate(represent, helper->GetExtendableIndex(k))]]))) {
+        k++;
+    }
+    
+    return (k < helper->GetNumUnmappedExtendable()) ? (pair_V[cand_to_v[cs_.GetCandidate(represent, helper->GetExtendableIndex(k))]] = u,
+                                                     pair_U[u] = cand_to_v[cs_.GetCandidate(represent, helper->GetExtendableIndex(k))], true)
+                                                   : (dist[u] = INF, false);
+}
+  return true;
 }
 
 inline void MaximumMatching::AddToU(Size u) {
@@ -116,24 +120,17 @@ inline void MaximumMatching::AddToU(Size u) {
   nec_index[size_U] = u;
 }
 
-inline void MaximumMatching::AddToV(Size v) {
-  size_V += 1;
-  cand_to_v[v] = size_V;
-}
-
-inline bool MaximumMatching::IsAddedToV(Size v) {
-  return cand_to_v[v] != INVALID_SZ;
-}
-
 inline void MaximumMatching::Clear(Vertex *nec_distinct_cands,
                                    Size *num_nec_distinct_cands) {
   size_U = 0;
   size_V = 0;
 
-  for (Size i = 0; i < *num_nec_distinct_cands; ++i) {
+  Size i = 0;
+while (i < *num_nec_distinct_cands) {
     Vertex cand = nec_distinct_cands[i];
     cand_to_v[cand] = INVALID_SZ;
-  }
+    i++;
+}
   *num_nec_distinct_cands = 0;
 }
 
@@ -141,66 +138,43 @@ inline bool MaximumMatching::BFS() {
   Size queue_start = 0;
   Size queue_end = 0;
 
-  for (Size u = 1; u <= size_U; ++u) {
-    if (pair_U[u] == NIL) {
-      dist[u] = 0;
-      queue[queue_end++] = u;
-    } else {
-      dist[u] = INF;
-    }
+  Size u = 1;
+  while (u <= size_U) {
+    dist[u] = (pair_U[u] == NIL) ? 0 : INF;
+    queue[queue_end++] = (pair_U[u] == NIL) ? u : queue[queue_end];
+    u++;
   }
-
   dist[NIL] = INF;
-
   while (queue_start != queue_end) {
     Size u = queue[queue_start];
     queue_start++;
-
-    if (dist[u] < dist[NIL]) {
-      Size j = nec_index[u];
-      Vertex represent = query_.GetNECElement(j).represent;
-      BacktrackHelper *helper = backtrack_helpers_ + represent;
-
-      for (Size k = 0; k < helper->GetNumUnmappedExtendable(); k++) {
-        Vertex cand =
-            cs_.GetCandidate(represent, helper->GetExtendableIndex(k));
-        Size v = cand_to_v[cand];
-        if (dist[pair_V[v]] == INF) {
-          dist[pair_V[v]] = dist[u] + 1;
-
-          queue[queue_end++] = pair_V[v];
-        }
-      }
+    while (u <= size_U) {
+    dist[u] = (pair_U[u] == NIL) ? 0 : INF;
+    queue[queue_end++] = (dist[u] == 0) ? u : queue[queue_end];
+    u++;
     }
   }
-
   return (dist[NIL] != INF);
 }
-
-inline bool MaximumMatching::DFS(Size u) {
-  if (u != NIL) {
-    Size j = nec_index[u];
-    Vertex represent = query_.GetNECElement(j).represent;
-    BacktrackHelper *helper = backtrack_helpers_ + represent;
-
-    for (Size k = 0; k < helper->GetNumUnmappedExtendable(); k++) {
-      Vertex cand = cs_.GetCandidate(represent, helper->GetExtendableIndex(k));
-      Size v = cand_to_v[cand];
-      if (dist[pair_V[v]] == dist[u] + 1) {
-        if (DFS(pair_V[v])) {
-          pair_V[v] = u;
-          pair_U[u] = v;
-          return true;
-        }
-      }
-    }
-
-    dist[u] = INF;
-    return false;
-  }
-
-  return true;
+inline void MaximumMatching::AddToV(Size v) {
+  size_V += 1;
+  cand_to_v[v] = size_V;
 }
+inline Size MaximumMatching::ComputeMaximumMatching(Label label) {
+    Size maximum_matching = 0;
+    for (Size i = 0; i <= query_.GetNumVertices(); ++i) {
+        pair_U[i] = NIL;
+    }
+    for (Size i = 0; i <= data_.GetLabelFrequency(label); ++i) {
+        pair_V[i] = NIL;
+    }
+    // Compute maximum matching with Hopcroft-Karp algorithm
+    for (Size u = 1; u <= size_U && BFS(); ++u) {
+        maximum_matching += (pair_U[u] == NIL && DFS(u)) ? 1 : 0;
+    }
+    return maximum_matching;
+}
+
 }  // namespace daf
 
 #endif  // MAXIMUM_MATCHING_H_
