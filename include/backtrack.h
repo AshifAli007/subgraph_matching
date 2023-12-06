@@ -18,38 +18,32 @@ class Backtrack {
  public:
   Backtrack(const DataGraph &data, const QueryGraph &query,
             const CandidateSpace &cs);
+  inline uint64_t GetNumBacktrackCalls() const;
+  Backtrack(const Backtrack &) = delete;
+  uint64_t FindMatches(uint64_t limit);
+  Backtrack &operator=(const Backtrack &) = delete;
   ~Backtrack();
 
-  Backtrack &operator=(const Backtrack &) = delete;
-  Backtrack(const Backtrack &) = delete;
-
-  uint64_t FindMatches(uint64_t limit);
-  inline uint64_t GetNumBacktrackCalls() const;
-
  private:
-  const DataGraph &data_;
-  const QueryGraph &query_;
-  const CandidateSpace &cs_;
-
-  Ordering *extendable_queue_;
-  MatchLeaves *match_leaves_;
-  BacktrackHelper *helpers_;
-
-  Vertex *mapped_query_vtx_;
-  SearchTreeNode *node_stack_;
-  SearchTreeNode **mapped_nodes_;
-
-  uint64_t num_embeddings_;
-  uint64_t num_backtrack_calls_;
-  Size backtrack_depth_;
-
-  Vertex GetRootVertex();
-  void InitializeNodeStack();
-  void ComputeExtendable(Vertex u, Vertex u_nbr, Size u_nbr_idx, Size cs_v_idx);
-  void ComputeDynamicAncestor(Vertex u, Vertex u_nbr);
-  bool ComputeExtendableForAllNeighbors(SearchTreeNode *cur_node,
-                                        Size cs_v_idx);
-  void ReleaseNeighbors(SearchTreeNode *cur_node);
+    const DataGraph &data_;
+    MatchLeaves *match_leaves_;
+    uint64_t num_embeddings_;
+    const CandidateSpace &cs_;
+    Vertex *mapped_query_vtx_;
+    Size backtrack_depth_;
+    const QueryGraph &query_;
+    SearchTreeNode *node_stack_;
+    BacktrackHelper *helpers_;
+    Ordering *extendable_queue_;
+    uint64_t num_backtrack_calls_;
+    SearchTreeNode **mapped_nodes_;
+    void ComputeExtendable(Vertex u, Vertex u_nbr, Size u_nbr_idx, Size cs_v_idx);
+    void ReleaseNeighbors(SearchTreeNode *cur_node);
+    void ComputeDynamicAncestor(Vertex u, Vertex u_nbr);
+    void InitializeNodeStack();
+    Vertex GetRootVertex();   
+    bool ComputeExtendableForAllNeighbors(SearchTreeNode *cur_node,
+                                          Size cs_v_idx);
 };
 
 inline uint64_t Backtrack::GetNumBacktrackCalls() const {
