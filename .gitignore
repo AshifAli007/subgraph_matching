@@ -1,11 +1,9 @@
 tmp/
-googletest/
 dataset/
 build/
 .vscode/
 src1/
-moss.pl
-datasets/
+Datasets/
 live/
 include1/
 output.csv
