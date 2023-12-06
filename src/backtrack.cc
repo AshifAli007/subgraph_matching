@@ -371,3 +371,4 @@ void Backtrack::ReleaseNeighbors(SearchTreeNode *cur_node) {
 
 
 // perl moss.pl -l cc src/*.cc src1/*.cc
+// perl moss.pl -l cc include/*.h include/*.h
